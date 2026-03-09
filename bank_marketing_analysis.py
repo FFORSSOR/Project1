@@ -1,105 +1,104 @@
-# ==============================
-# Project 1 : Bank Marketing Analysis using PySpark
-# Dataset : Bank Marketing Dataset
-# ==============================
-
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import avg, max, min, count, col
+from pyspark.sql.functions import col, count, avg
 
+# ---------------------------------
+# 1. Create Spark Session
+# ---------------------------------
 
 spark = SparkSession.builder \
     .appName("Bank Marketing Analysis") \
     .getOrCreate()
 
+# ---------------------------------
+# 2. Load Dataset
+# ---------------------------------
 
-df = spark.read.csv("bank.csv", header=True, inferSchema=True)
+df = spark.read.csv(
+    "bank.csv",
+    header=True,
+    inferSchema=True
+)
+
+print("===== Dataset Schema =====")
+df.printSchema()
 
 print("===== Sample Data =====")
 df.show(5)
 
+# ---------------------------------
+# Analysis 1 : Job vs Deposit
+# ---------------------------------
 
-print("===== Schema =====")
-df.printSchema()
+job_analysis = df.filter(col("deposit") == "yes") \
+    .groupBy("Job") \
+    .agg(count("*").alias("total_deposit")) \
+    .orderBy(col("total_deposit").desc())
 
+print("===== Deposit by Job =====")
+job_analysis.show()
 
-print("===== Total Records =====")
-print(df.count())
+# ---------------------------------
+# Analysis 2 : Average Age
+# ---------------------------------
 
+age_analysis = df.filter(col("deposit") == "yes") \
+    .agg(avg("Age").alias("average_age"))
 
-print("===== Average Age =====")
-df.select(avg("age")).show()
+print("===== Average Age of Customers who Deposit =====")
+age_analysis.show()
 
+# ---------------------------------
+# Analysis 3 : Call Duration Impact
+# ---------------------------------
 
-print("===== Job Distribution =====")
-df.groupBy("job") \
-    .count() \
-    .orderBy(col("count").desc()) \
-    .show()
+duration_analysis = df.groupBy("deposit") \
+    .agg(avg("Duration").alias("avg_call_duration"))
 
+print("===== Average Call Duration =====")
+duration_analysis.show()
 
-print("===== Marital Status =====")
-df.groupBy("marital") \
-    .count() \
-    .show()
+# ---------------------------------
+# Analysis 4 : Housing Loan Impact
+# ---------------------------------
 
+housing_analysis = df.groupBy("Housing","deposit") \
+    .agg(count("*").alias("total_customers"))
 
-print("===== Education =====")
-df.groupBy("education") \
-    .count() \
-    .show()
+print("===== Housing Loan vs Deposit =====")
+housing_analysis.show()
 
+# ---------------------------------
+# Analysis 5 : Month vs Deposit
+# ---------------------------------
 
-print("===== Term Deposit Subscription =====")
-df.groupBy("deposit") \
-    .count() \
-    .show()
+month_analysis = df.filter(col("deposit") == "yes") \
+    .groupBy("Month") \
+    .agg(count("*").alias("total_deposit")) \
+    .orderBy(col("total_deposit").desc())
 
+print("===== Deposit by Month =====")
+month_analysis.show()
 
-print("===== Job vs Subscription =====")
-df.groupBy("job","deposit") \
-    .count() \
-    .orderBy("job") \
-    .show()
+# ---------------------------------
+# Analysis 6 : Education vs Deposit
+# ---------------------------------
 
+education_analysis = df.groupBy("Education","deposit") \
+    .agg(count("*").alias("total_customers"))
 
-print("===== Housing Loan vs Subscription =====")
-df.groupBy("housing","deposit") \
-    .count() \
-    .show()
+print("===== Education vs Deposit =====")
+education_analysis.show()
 
+# ---------------------------------
+# Conversion Rate
+# ---------------------------------
 
-print("===== Personal Loan vs Subscription =====")
-df.groupBy("loan","deposit") \
-    .count() \
-    .show()
+total_customers = df.count()
+total_deposit = df.filter(col("deposit") == "yes").count()
 
-
-print("===== Balance Statistics =====")
-df.describe("balance").show()
-
-
-print("===== Top 10 Highest Balance =====")
-df.select("age","job","balance") \
-    .orderBy(col("balance").desc()) \
-    .show(10)
-
-
-print("===== Month Distribution =====")
-df.groupBy("month") \
-    .count() \
-    .orderBy(col("count").desc()) \
-    .show()
-
-
-print("===== Call Duration Statistics =====")
-df.describe("duration").show()
-
-
-print("===== Campaign Contact Count =====")
-df.groupBy("campaign") \
-    .count() \
-    .orderBy(col("count").desc()) \
-    .show()
-
+print("===== Conversion Rate =====")
+print("Total Customers:", total_customers)
+print("Total Deposit:", total_deposit)
+print("Deposit Rate:", total_deposit/total_customers)
 
 spark.stop()
